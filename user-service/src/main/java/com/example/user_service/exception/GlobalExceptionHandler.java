@@ -1,4 +1,4 @@
-package com.example.user_service.user_service.exception;
+package com.example.user_service.exception;
 
 import java.time.Instant;
 import java.util.HashMap;

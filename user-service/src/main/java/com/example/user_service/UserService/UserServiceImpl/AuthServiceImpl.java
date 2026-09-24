@@ -1,13 +1,15 @@
-package com.example.user_service.user_service.UserService.UserServiceImpl;
+package com.example.user_service.UserService.UserServiceImpl;
 
-import com.example.user_service.user_service.UserService.AuthService;
-import com.example.user_service.user_service.dto.AuthResponse;
-import com.example.user_service.user_service.dto.LoginRequest;
-import com.example.user_service.user_service.dto.RegisterRequest;
-import com.example.user_service.user_service.entity.UserAuth;
-import com.example.user_service.user_service.repository.AuthRepo;
-import com.example.user_service.user_service.security.JwtService;
+import com.example.user_service.UserService.AuthService;
+import com.example.user_service.dto.AuthResponse;
+import com.example.user_service.dto.LoginRequest;
+import com.example.user_service.dto.RegisterRequest;
+import com.example.user_service.dto.UserResponse;
+import com.example.user_service.entity.UserAuth;
+import com.example.user_service.repository.AuthRepo;
+import com.example.user_service.security.JwtService;
 import java.util.Locale;
+import java.util.List;
 import org.springframework.security.authentication.BadCredentialsException;
 import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
@@ -63,6 +65,15 @@ public class AuthServiceImpl implements AuthService {
         UserAuth user = authRepo.findByEmail(normalizeEmail(email))
                 .orElseThrow(() -> new IllegalArgumentException("User not found"));
         return toAuthResponse(user, null);
+    }
+
+    @Override
+    @Transactional(readOnly = true)
+    public List<UserResponse> allUsers() {
+        return authRepo.findAll().stream()
+                .map(user -> new UserResponse(
+                        user.getId(), user.getName(), user.getEmail(), user.getRole(), user.getCreatedAt()))
+                .toList();
     }
 
     private AuthResponse toAuthResponse(UserAuth user, String token) {

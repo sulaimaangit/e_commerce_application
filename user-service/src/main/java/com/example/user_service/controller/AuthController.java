@@ -1,9 +1,11 @@
-package com.example.user_service.user_service.controller;
+package com.example.user_service.controller;
 
-import com.example.user_service.user_service.UserService.AuthService;
-import com.example.user_service.user_service.dto.AuthResponse;
-import com.example.user_service.user_service.dto.LoginRequest;
-import com.example.user_service.user_service.dto.RegisterRequest;
+import com.example.user_service.UserService.AuthService;
+import com.example.user_service.dto.AuthResponse;
+import com.example.user_service.dto.LoginRequest;
+import com.example.user_service.dto.RegisterRequest;
+import com.example.user_service.dto.UserResponse;
+import java.util.List;
 import jakarta.validation.Valid;
 import java.security.Principal;
 import org.springframework.http.HttpStatus;
@@ -38,5 +40,10 @@ public class AuthController {
     @GetMapping("/me")
     public AuthResponse me(Principal principal) {
         return authService.currentUser(principal.getName());
+    }
+
+    @GetMapping("/users")
+    public List<UserResponse> allUsers() {
+        return authService.allUsers();
     }
 }

@@ -1,6 +1,6 @@
-package com.example.user_service.user_service.security;
+package com.example.user_service.security;
 
-import com.example.user_service.user_service.repository.AuthRepo;
+import com.example.user_service.repository.AuthRepo;
 import java.util.List;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;

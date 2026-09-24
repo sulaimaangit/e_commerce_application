@@ -1,6 +1,6 @@
-package com.example.user_service.user_service.security;
+package com.example.user_service.security;
 
-import com.example.user_service.user_service.entity.UserAuth;
+import com.example.user_service.entity.UserAuth;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
 import io.jsonwebtoken.io.Decoders;

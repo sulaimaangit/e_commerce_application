@@ -1,4 +1,4 @@
-package com.example.user_service.user_service.security;
+package com.example.user_service.security;
 
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
