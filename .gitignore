@@ -1,0 +1,48 @@
+﻿# Java / Gradle (applies to every service)
+**/.gradle/
+**/build/
+**/out/
+!**/src/**/build/
+!**/src/**/out/
+
+# Keep Gradle wrapper JARs under version control
+!**/gradle/wrapper/gradle-wrapper.jar
+
+# IDEs
+.idea/
+*.iml
+*.ipr
+*.iws
+.vscode/
+
+# Eclipse / Spring Tool Suite
+.classpath
+.factorypath
+.project
+.settings/
+.springBeans
+.sts4-cache/
+.apt_generated/
+
+# NetBeans
+nbproject/private/
+nbbuild/
+dist/
+nbdist/
+.nb-gradle/
+
+# Local environment and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and OS files
+*.log
+.DS_Store
+Thumbs.db
+
+# README files
+README
+README.*
+**/README
+**/README.*
