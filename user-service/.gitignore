@@ -1,4 +1,6 @@
 HELP.md
+Check.java
+user-service-workflow.txt
 .gradle
 build/
 !gradle/wrapper/gradle-wrapper.jar
