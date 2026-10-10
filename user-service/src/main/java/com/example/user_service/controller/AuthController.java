@@ -1,6 +1,6 @@
 package com.example.user_service.controller;
 
-import com.example.user_service.UserService.AuthService;
+import com.example.user_service.service.AuthService;
 import com.example.user_service.dto.AuthResponse;
 import com.example.user_service.dto.LoginRequest;
 import com.example.user_service.dto.RegisterRequest;
