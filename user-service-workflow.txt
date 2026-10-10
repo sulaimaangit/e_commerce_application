@@ -1,0 +1,314 @@
+user service explanation
+
+To use GitHub Copilot CLI in AI Assistant, you need to install it first. It will be installed automatically when you click “Install and Continue”. The installation is subject to the <a href="https://github.com/github/copilot-cli?tab=License-1-ov-file">GitHub Copilot CLI license</a>.<br>After installation, your data may be processed by the provider of GitHub Copilot in accordance with their terms.<br>JetBrains is not responsible for the processing of your inputs, generated outputs, or any actions performed.
+
+Selected authentication: Sign in with GitHub
+
+I’ll trace the service from its entry points through `AuthServiceImpl`, persistence, security, and responses, then explain the end-to-end workflow with the key files involved.
+
+This service is a **Spring Boot user-authentication service**. Its main workflow is:
+
+```text
+HTTP request
+   ↓
+AuthController
+   ↓
+AuthServiceImpl
+   ↓
+AuthRepo / PostgreSQL
+   ↓
+PasswordEncoder + JwtService
+   ↓
+AuthResponse
+```
+
+## 1. Application startup
+
+`UserServiceApplication.java` starts Spring Boot. Component scanning discovers:
+- `AuthController` — HTTP API layer
+- `AuthServiceImpl` — business logic
+- `AuthRepo` — database access
+- `SecurityConfig` — Spring Security configuration
+- `JwtService` — JWT creation and validation
+- `JwtFilter` — authentication for protected requests
+
+The database and JWT settings come from `application.properties`. PostgreSQL is the normal configured database, with environment variables used to override defaults.
+
+---
+
+## 2. Registration workflow
+
+Endpoint:
+
+```http
+POST /api/auth/register
+```
+
+Example request:
+
+```json
+{
+  "name": "Alice",
+  "email": " ALICE@example.com ",
+  "password": "password123"
+}
+```
+
+### Request flow
+
+1. `AuthController.register()` receives the request.
+2. `@Valid` validates `RegisterRequest`:
+   - name must not be blank
+   - email must be valid and non-empty
+   - password must be at least 8 characters
+3. The controller delegates to `AuthServiceImpl.register()`.
+4. The email is normalized:
+
+```java
+email.trim().toLowerCase(Locale.ROOT)
+```
+
+So ` ALICE@example.com ` becomes `alice@example.com`.
+
+5. `AuthRepo.existsByEmail(email)` checks for duplicates.
+6. A new `UserAuth` entity is created.
+7. The password is hashed with BCrypt:
+
+```java
+passwordEncoder.encode(request.password())
+```
+
+The plain-text password is never stored.
+
+8. The user is saved through JPA:
+
+```java
+authRepo.save(user)
+```
+
+9. `JwtService.generateToken(savedUser)` creates a JWT.
+10. The service returns:
+
+```json
+{
+  "id": 1,
+  "name": "Alice",
+  "email": "alice@example.com",
+  "token": "eyJ..."
+}
+```
+
+The endpoint returns HTTP `201 Created`.
+
+### Database record
+`UserAuth` maps to the `user_auth` table:
+| Field | Purpose |
+|---|---|
+| `id` | Generated primary key |
+| `name` | User's name |
+| `email` | Unique normalized email |
+| `password` | BCrypt hash |
+| `role` | Defaults to `ROLE_USER` |
+| `createdAt` | Set automatically before insert |
+
+The `@Transactional` annotation means the registration operation is treated as one database transaction.
+
+---
+
+## 3. Login workflow
+
+Endpoint:
+
+```http
+POST /api/auth/login
+```
+
+Example:
+
+```json
+{
+  "email": "alice@example.com",
+  "password": "password123"
+}
+```
+
+### Request flow
+
+1. `AuthController.login()` receives the request.
+2. `LoginRequest` is validated.
+3. `AuthServiceImpl.login()` normalizes the email.
+4. `AuthRepo.findByEmail(email)` retrieves the user.
+5. BCrypt compares the supplied password with the stored hash:
+
+```java
+passwordEncoder.matches(request.password(), user.getPassword())
+```
+
+6. If the user does not exist or the password is wrong, the service throws:
+
+```java
+BadCredentialsException("Invalid email or password")
+```
+
+7. On success, `JwtService.generateToken(user)` creates a JWT.
+8. The user information and token are returned in `AuthResponse`.
+
+Login is marked:
+
+```java
+@Transactional(readOnly = true)
+```
+
+because it only reads from the database.
+
+---
+
+## 4. What is inside the JWT?
+`JwtService.generateToken()` creates a signed token containing:
+```text
+subject = user email
+userId   = database user ID
+name     = user name
+role     = user role
+issuedAt = creation time
+expiration = current time + configured expiration
+```
+
+The token is signed using the configured Base64 JWT secret. The default expiration in the properties is 24 hours.
+
+The client normally sends the token on later requests:
+
+```http
+Authorization: Bearer eyJ...
+```
+
+---
+
+## 5. Protected-request workflow
+
+Only these endpoints are public:
+
+```text
+POST /api/auth/register
+POST /api/auth/login
+Swagger/OpenAPI endpoints
+```
+
+Everything else requires authentication because of:
+
+```java
+.anyRequest().authenticated()
+```
+
+For a protected request:
+
+1. `JwtFilter` runs before Spring Security's username/password filter.
+2. It reads the `Authorization` header.
+3. It checks that the value starts with `Bearer `.
+4. It extracts the JWT.
+5. `JwtService.extractUsername(token)` reads the email from the token.
+6. `UserDetailsService` loads the user from `AuthRepo`.
+7. `JwtService.isTokenValid()` checks:
+   - token email matches the database user's email
+   - token is not expired
+8. If valid, a `UsernamePasswordAuthenticationToken` is placed in Spring's `SecurityContext`.
+9. The request continues to the controller as an authenticated request.
+
+This service is stateless: it does not create server-side login sessions. The JWT itself carries the authentication information.
+
+---
+
+## 6. Current-user workflow
+
+Endpoint:
+
+```http
+GET /api/auth/me
+Authorization: Bearer <token>
+```
+
+### Request flow
+
+1. `JwtFilter` validates the JWT.
+2. Spring creates a `Principal`.
+3. `AuthController.me()` receives the principal:
+
+```java
+public AuthResponse me(Principal principal)
+```
+
+4. `principal.getName()` returns the authenticated email.
+5. `AuthServiceImpl.currentUser(email)` loads the user.
+6. The user is converted to an `AuthResponse`.
+
+Unlike registration and login, `/me` does not generate a new token:
+
+```json
+{
+  "id": 1,
+  "name": "Alice",
+  "email": "alice@example.com",
+  "token": null
+}
+```
+
+---
+
+## 7. Error workflow
+`GlobalExceptionHandler` converts common exceptions into JSON responses.
+### Validation failure — HTTP 400
+
+For example, an invalid email:
+
+```json
+{
+  "timestamp": "...",
+  "status": 400,
+  "error": "Bad Request",
+  "message": "Validation failed",
+  "fields": {
+    "email": "Email must be valid"
+  }
+}
+```
+
+### Duplicate registration — HTTP 400
+`AuthServiceImpl` throws:
+
+```java
+IllegalArgumentException("Email is already registered")
+```
+
+The handler returns that message with HTTP `400`.
+
+### Invalid login — HTTP 401
+
+A missing user or incorrect password throws `BadCredentialsException`, resulting in:
+
+```json
+{
+  "timestamp": "...",
+  "status": 401,
+  "error": "Unauthorized",
+  "message": "Invalid email or password"
+}
+```
+
+---
+
+## Key responsibilities by file
+
+| File | Responsibility |
+|---|---|
+| `AuthController` | Defines `/register`, `/login`, and `/me` endpoints |
+| `AuthServiceImpl` | Registration, login, user lookup, normalization |
+| `AuthRepo` | Reads and writes `UserAuth` records |
+| `UserAuth` | Database entity for users |
+| `PasswordEncoder` | BCrypt password hashing and verification |
+| `JwtService` | Creates and validates JWTs |
+| `JwtFilter` | Converts valid JWTs into authenticated Spring Security users |
+| `SecurityConfig` | Defines public/protected routes and stateless security |
+| `GlobalExceptionHandler` | Converts exceptions into API error responses |
+| DTO records | Validate and structure request/response data |
+
+In short: **registration creates a hashed-password user and returns a JWT; login verifies the hash and returns a JWT; every protected request uses `JwtFilter` to validate that JWT; `/me` uses the authenticated email to retrieve the current user.**
