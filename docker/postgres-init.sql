@@ -1,0 +1,2 @@
+CREATE DATABASE "Products";
+CREATE DATABASE "Users";
