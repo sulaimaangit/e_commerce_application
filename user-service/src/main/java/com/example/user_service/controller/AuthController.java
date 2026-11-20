@@ -1,5 +1,8 @@
 package com.example.user_service.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 import com.example.user_service.service.AuthService;
 import com.example.user_service.dto.AuthResponse;
 import com.example.user_service.dto.LoginRequest;
@@ -21,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class AuthController {
 
     private final AuthService authService;
-
+    @Autowired
     public AuthController(AuthService authService) {
         this.authService = authService;
     }

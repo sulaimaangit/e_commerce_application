@@ -1,5 +1,8 @@
 package com.example.user_service.security;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 import com.example.user_service.entity.UserAuth;
 import io.jsonwebtoken.Claims;
 import io.jsonwebtoken.Jwts;
@@ -17,7 +20,7 @@ public class JwtService {
 
     private final Key signingKey;
     private final long expirationMillis;
-
+    @Autowired
     public JwtService(
             @Value("${app.jwt.secret}") String secret,
             @Value("${app.jwt.expiration-ms}") long expirationMillis

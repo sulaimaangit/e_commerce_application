@@ -1,5 +1,8 @@
 package com.example.user_service.service.serviceImpl;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 import com.example.user_service.service.AuthService;
 import com.example.user_service.dto.AuthResponse;
 import com.example.user_service.dto.LoginRequest;
@@ -21,7 +24,7 @@ public class AuthServiceImpl implements AuthService {
     private final AuthRepo authRepo;
     private final PasswordEncoder passwordEncoder;
     private final JwtService jwtService;
-
+    @Autowired
     public AuthServiceImpl(AuthRepo authRepo, PasswordEncoder passwordEncoder, JwtService jwtService) {
         this.authRepo = authRepo;
         this.passwordEncoder = passwordEncoder;

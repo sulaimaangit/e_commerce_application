@@ -1,5 +1,8 @@
 package com.example.product_service.service.serviceImpl;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 import com.example.product_service.dto.ProductRequest;
 import com.example.product_service.entity.Product;
 import com.example.product_service.repository.ProductRepository;
@@ -15,7 +18,7 @@ import org.springframework.web.server.ResponseStatusException;
 public class ProductServiceImpl implements ProductService {
 
     private final ProductRepository productRepository;
-
+    @Autowired
     public ProductServiceImpl(ProductRepository productRepository) {
         this.productRepository = productRepository;
     }

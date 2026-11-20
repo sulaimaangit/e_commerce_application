@@ -1,5 +1,8 @@
 package com.example.product_service.controller;
 
+import org.springframework.beans.factory.annotation.Autowired;
+
+
 import com.example.product_service.dto.ProductRequest;
 import com.example.product_service.entity.Product;
 import com.example.product_service.service.ProductService;
@@ -21,7 +24,7 @@ import org.springframework.web.bind.annotation.RestController;
 public class ProductController {
 
     private final ProductService productService;
-
+    @Autowired
     public ProductController(ProductService productService) {
         this.productService = productService;
     }
